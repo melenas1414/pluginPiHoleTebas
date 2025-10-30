@@ -1,0 +1,34 @@
+# Lista de dominios WARP (ejemplo)
+# Un dominio por línea
+# Los subdominios se incluyen automáticamente
+
+# Servicios de streaming
+netflix.com
+hulu.com
+disney.com
+disneyplus.com
+amazon.com
+primevideo.com
+spotify.com
+
+# Redes sociales
+facebook.com
+instagram.com
+twitter.com
+x.com
+tiktok.com
+
+# Servicios de Google
+youtube.com
+googlevideo.com
+gmail.com
+
+# Servicios Microsoft  
+microsoft.com
+outlook.com
+xbox.com
+
+# Otros servicios
+reddit.com
+github.com
+stackoverflow.com

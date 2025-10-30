@@ -1,0 +1,49 @@
+# Archivos de log
+logs/*.log
+logs/*.log.old
+
+# Archivos de configuración con datos sensibles
+.env
+
+# Archivos temporales de Docker
+.dockerignore
+
+# Archivos de backup
+backups/
+
+# Archivos de estado de WARP
+docker/warp/warp-settings.json
+
+# Archivos de cache de Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# Archivos del sistema
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de sistema Linux
+*.tmp
+*.temp
+
+# Archivos de estado de Docker Compose
+docker-compose.override.yml
+
+# Archivos de configuración local
+local/
+
+# Instrucciones internas de GitHub Copilot
+.github/instructions/

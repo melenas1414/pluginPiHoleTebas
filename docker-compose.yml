@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  warp-proxy:
+    build:
+      context: ./docker/warp
+      dockerfile: Dockerfile
+    container_name: pihole-warp-proxy
+    restart: unless-stopped
+    environment:
+      - WARP_TEAM_ID=${WARP_TEAM_ID:-}
+      - WARP_LICENSE_KEY=${WARP_LICENSE_KEY:-}
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    volumes:
+      - /lib/modules:/lib/modules:ro
+      - ./config/warp:/config
+    ports:
+      - "1080:1080"  # SOCKS5 proxy port
+      - "8080:8080"  # Transparent proxy port
+    privileged: true
+    network_mode: host

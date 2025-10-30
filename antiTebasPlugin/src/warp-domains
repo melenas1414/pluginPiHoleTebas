@@ -1,0 +1,179 @@
+#!/bin/bash
+#
+# Script de gestión de dominios WARP para Pi-hole
+#
+
+PLUGIN_DIR="/etc/pihole/plugins/warp"
+PYTHON_SCRIPT="$PLUGIN_DIR/src/query-monitor.py"
+
+# Verificar que el plugin esté instalado
+if [ ! -f "$PYTHON_SCRIPT" ]; then
+    echo "❌ Plugin WARP no instalado. Ejecuta install-plugin.sh primero."
+    exit 1
+fi
+
+# Función de ayuda
+show_help() {
+    echo "🎯 Gestión de dominios WARP para Pi-hole"
+    echo
+    echo "Uso: $0 <comando> [argumentos]"
+    echo
+    echo "Comandos disponibles:"
+    echo "  add <dominio>     - Agregar dominio a lista WARP"
+    echo "  remove <dominio>  - Eliminar dominio de lista WARP"  
+    echo "  list             - Ver dominios WARP configurados"
+    echo "  test <dominio>   - Probar si dominio usa WARP"
+    echo "  update           - Actualizar listas desde URLs externas"
+    echo "  stats            - Ver estadísticas del plugin"
+    echo "  status           - Ver estado del sistema"
+    echo "  start            - Iniciar monitor en background"
+    echo "  stop             - Detener monitor"
+    echo
+    echo "Ejemplos:"
+    echo "  $0 add netflix.com"
+    echo "  $0 remove google.com"
+    echo "  $0 test youtube.com"
+    echo "  $0 update"
+}
+
+# Función para verificar si el monitor está ejecutándose
+is_monitor_running() {
+    pgrep -f "query-monitor.py" >/dev/null 2>&1
+}
+
+# Procesar comandos
+case "${1:-help}" in
+    "add")
+        if [ -z "$2" ]; then
+            echo "❌ Especifica un dominio"
+            echo "Uso: $0 add <dominio>"
+            exit 1
+        fi
+        
+        echo "➕ Agregando dominio: $2"
+        python3 "$PYTHON_SCRIPT" add "$2"
+        ;;
+        
+    "remove")
+        if [ -z "$2" ]; then
+            echo "❌ Especifica un dominio"  
+            echo "Uso: $0 remove <dominio>"
+            exit 1
+        fi
+        
+        echo "➖ Eliminando dominio: $2"
+        python3 "$PYTHON_SCRIPT" remove "$2"
+        ;;
+        
+    "list")
+        echo "📋 Dominios WARP configurados:"
+        if [ -f "$PLUGIN_DIR/lists/warp-domains.txt" ]; then
+            echo
+            grep -v "^#" "$PLUGIN_DIR/lists/warp-domains.txt" | grep -v "^$" | nl -v1 -s". "
+            echo
+            echo "Total: $(grep -v "^#" "$PLUGIN_DIR/lists/warp-domains.txt" | grep -v "^$" | wc -l) dominios"
+        else
+            echo "   (ninguno configurado)"
+        fi
+        ;;
+        
+    "test")
+        if [ -z "$2" ]; then
+            echo "❌ Especifica un dominio"
+            echo "Uso: $0 test <dominio>"
+            exit 1
+        fi
+        
+        echo "🧪 Probando dominio: $2"
+        python3 "$PYTHON_SCRIPT" test "$2"
+        ;;
+        
+    "update")
+        echo "🔄 Actualizando listas desde URLs externas..."
+        python3 "$PYTHON_SCRIPT" update
+        ;;
+        
+    "stats")
+        echo "📊 Estadísticas del plugin:"
+        python3 "$PYTHON_SCRIPT" stats
+        ;;
+        
+    "status")
+        echo "🔍 Estado del sistema WARP:"
+        echo
+        
+        # Verificar plugin
+        if [ -f "$PYTHON_SCRIPT" ]; then
+            echo "✅ Plugin instalado"
+        else
+            echo "❌ Plugin no instalado"
+        fi
+        
+        # Verificar monitor
+        if is_monitor_running; then
+            echo "✅ Monitor ejecutándose"
+        else
+            echo "❌ Monitor no ejecutándose"
+        fi
+        
+        # Verificar proxy WARP
+        echo -n "🔌 Proxy WARP: "
+        python3 "$PYTHON_SCRIPT" check
+        
+        # Ver configuración
+        echo
+        echo "⚙️ Configuración:"
+        if [ -f "$PLUGIN_DIR/warp-config.conf" ]; then
+            echo "   Proxy: $(grep WARP_PROXY_HOST "$PLUGIN_DIR/warp-config.conf" | cut -d'=' -f2):$(grep WARP_PROXY_PORT "$PLUGIN_DIR/warp-config.conf" | cut -d'=' -f2)"
+            echo "   URLs: $(grep DOMAIN_LISTS_URLS "$PLUGIN_DIR/warp-config.conf" | cut -d'=' -f2)"
+        fi
+        ;;
+        
+    "start")
+        if is_monitor_running; then
+            echo "⚠️ Monitor ya está ejecutándose"
+            exit 1
+        fi
+        
+        echo "🚀 Iniciando monitor WARP en background..."
+        nohup python3 "$PYTHON_SCRIPT" > "$PLUGIN_DIR/logs/monitor.out" 2>&1 &
+        sleep 2
+        
+        if is_monitor_running; then
+            echo "✅ Monitor iniciado correctamente"
+            echo "   Ver logs: tail -f $PLUGIN_DIR/logs/warp-plugin.log"
+        else
+            echo "❌ Error iniciando monitor"
+            exit 1
+        fi
+        ;;
+        
+    "stop")
+        if ! is_monitor_running; then
+            echo "⚠️ Monitor no está ejecutándose"
+            exit 1
+        fi
+        
+        echo "🛑 Deteniendo monitor WARP..."
+        pkill -f "query-monitor.py"
+        sleep 2
+        
+        if ! is_monitor_running; then
+            echo "✅ Monitor detenido correctamente"
+        else
+            echo "❌ Error deteniendo monitor"
+            exit 1
+        fi
+        ;;
+        
+    "help"|"--help"|"-h")
+        show_help
+        ;;
+        
+    *)
+        echo "❌ Comando desconocido: $1"
+        echo
+        show_help
+        exit 1
+        ;;
+esac
