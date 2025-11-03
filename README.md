@@ -368,6 +368,26 @@ warp-domains stop
 warp-domains update
 ```
 
+### **📋 Referencia de dominios bloqueados**
+
+El proyecto incluye un archivo informativo con dominios que han sido objeto de medidas anti-piratería en España:
+
+```bash
+# Ver la referencia informativa
+cat examples/blocked-domains-reference.txt
+
+# Usar patrones de la referencia (solo para fines legales)
+grep "roja.*\.tv" examples/blocked-domains-reference.txt
+```
+
+**⚠️ IMPORTANTE:** Esta referencia es **solo informativa y educativa**. El plugin debe usarse **exclusivamente para fines legales** como:
+- Configuración de filtros parentales
+- Investigación académica sobre censura de internet
+- Análisis de tráfico de red corporativo
+- Configuración de políticas empresariales
+
+**❌ NO usar para:** Evadir bloqueos legales o acceder a contenido sin licencia.
+
 ### Monitoreo
 
 Los logs se almacenan en:
@@ -502,6 +522,9 @@ Javier Tebas utiliza sentencias judiciales que autorizan el bloqueo de ~120 IPs 
 │   ├── config/
 │   │   └── warp-config.conf   # Configuración
 │   └── README.md
+├── examples/
+│   ├── warp-domains-example.txt     # Ejemplo de dominios
+│   └── blocked-domains-reference.txt # 📋 Referencia informativa
 └── logs/                      # Archivos de log
 ```
 

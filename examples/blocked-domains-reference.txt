@@ -1,0 +1,88 @@
+# Dominios y sitios web bloqueados por medidas anti-piratería en España
+#
+# NOTA IMPORTANTE: Esta lista es solo informativa y educativa.
+# NO promovemos el acceso a contenido pirata ni violamos derechos de autor.
+# El plugin AntiTebas está diseñado para uso LEGAL y educativo.
+#
+# Fuentes: Noticias públicas y comunicados de LaLiga sobre bloqueos (2023-2024)
+
+# === SITIOS DE STREAMING DEPORTIVO BLOQUEADOS ===
+# Muchos de estos dominios cambian frecuentemente o usan proxies
+
+# Sitios conocidos mencionados en noticias como objetivos de bloqueos:
+roja*.tv
+pirlo*.tv
+*sport*.live
+*futbol*.net
+*laliga*.live
+*stream*.com
+*rojadirecta*
+*tarjeta*roja*
+*futbollibre*
+*librefutbol*
+
+# === DOMINIOS DE STREAMING GENERAL ===
+# Sitios que han sido objeto de medidas judiciales en España:
+*cuevana*
+*pelisplus*
+*gnula*
+*repelis*
+*seriesblanco*
+*serieskao*
+*pelispedia*
+*cinecalidad*
+
+# === PATRONES COMUNES DE EVASIÓN ===
+# Los sitios de piratería suelen usar estos patrones:
+# - Múltiples TLDs (.com, .net, .tv, .to, .cc, .me, etc.)
+# - Números al final del dominio (site1.com, site2.com)
+# - Subdominios aleatorios (abc123.site.com)
+# - Dominios con guiones (site-name.com)
+
+# === TIPOS DE DOMINIOS OBJETIVO ===
+# Categorías principales mencionadas en comunicados oficiales:
+# 1. Streaming deportivo en vivo
+# 2. Retransmisiones de LaLiga/Liga de Campeones  
+# 3. Partidos de selección española
+# 4. Eventos deportivos premium (Movistar, Orange, DAZN)
+
+# === MÉTODOS DE DETECCIÓN ===
+# Las autoridades identifican sitios por:
+# - Contenido sin licencia de LaLiga
+# - Retransmisión no autorizada de derechos TV
+# - Publicidad de casas de apuestas ilegales
+# - Ausencia de geobloqueo para contenido con derechos territoriales
+
+# === CONTEXTO LEGAL ===
+# Base legal de los bloqueos:
+# - Ley de Propiedad Intelectual española
+# - Directivas europeas sobre derechos de autor
+# - Órdenes judiciales específicas
+# - Solicitudes de LaLiga y titulares de derechos
+
+# === ACTUALIZACIONES ===
+# Los bloqueos son dinámicos:
+# - Se añaden nuevos dominios mensualmente
+# - Los sitios migran a nuevos dominios
+# - Uso de CDNs y proxies para evadir bloqueos
+# - Implementación de medidas técnicas (DNS, IP)
+
+# === USO DE ESTE ARCHIVO ===
+# Este archivo puede usarse para:
+# ✅ Configurar filtros parentales
+# ✅ Investigación académica sobre censura de internet
+# ✅ Análisis de tráfico de red
+# ✅ Configuración de políticas empresariales
+# ❌ NO para evadir bloqueos legales
+# ❌ NO para acceder a contenido pirata
+
+# === FUENTES DE INFORMACIÓN ===
+# - Comunicados oficiales de LaLiga (noviembre 2023)
+# - Informes de medios especializados en tecnología
+# - Comunicados del Ministerio de Cultura y Deporte
+# - Reportes de organizaciones de derechos digitales
+
+# DISCLAIMER:
+# Esta información se proporciona únicamente con fines educativos.
+# El uso de este plugin debe cumplir con las leyes locales e internacionales.
+# Los usuarios son responsables del uso que hagan de esta información.
