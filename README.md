@@ -295,6 +295,10 @@ WARP_LICENSE_KEY=your-license-key
 # Listas externas
 DOMAIN_LISTS_URLS=https://example.com/hosts,https://another.com/hosts
 
+# Listas públicas de dominios bloqueados en España
+# Para más información: docs/SPAIN_BLOCKLISTS.md
+SPAIN_BLOCKLIST_URLS=https://your-public-blocklist.com/spain.txt
+
 # Dominios/IPs personalizados
 CUSTOM_DOMAINS=netflix.com,hulu.com
 CUSTOM_IPS=8.8.8.8,1.1.1.1
@@ -387,6 +391,32 @@ grep "roja.*\.tv" examples/blocked-domains-reference.txt
 - Configuración de políticas empresariales
 
 **❌ NO usar para:** Evadir bloqueos legales o acceder a contenido sin licencia.
+
+### **🌐 Listas Públicas de Bloqueos en España**
+
+El plugin ahora soporta la descarga automática de listas públicas de dominios bloqueados en España:
+
+```bash
+# Configurar listas públicas en warp-config.conf
+SPAIN_BLOCKLIST_URLS=https://tu-lista-publica.com/spain-blocks.txt
+
+# Las listas se actualizan automáticamente cada hora
+# O puedes actualizar manualmente:
+warp-domains update
+```
+
+**Formatos soportados:**
+- Formato hosts: `0.0.0.0 dominio.com`
+- Formato plano: `dominio.com` (un dominio por línea)
+- Wildcards: `*.dominio.com`
+
+**Ver documentación completa:** [docs/SPAIN_BLOCKLISTS.md](docs/SPAIN_BLOCKLISTS.md)
+
+**Ejemplo de lista:** [examples/spain-blocklist-example.txt](examples/spain-blocklist-example.txt)
+
+**✅ Uso legal:** Solo para restaurar acceso a servicios bloqueados colateralmente, investigación académica, o análisis de red.
+
+**❌ NO usar:** Para acceder a contenido pirata o evadir bloqueos legales.
 
 ### Monitoreo
 
