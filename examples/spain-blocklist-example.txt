@@ -1,0 +1,97 @@
+# Ejemplo de Lista de Dominios Bloqueados en España
+# 
+# Este archivo es un EJEMPLO de cómo estructurar una lista de dominios
+# bloqueados para usar con el plugin AntiTebas.
+#
+# ⚠️ IMPORTANTE: Esta lista es SOLO DE EJEMPLO con fines educativos.
+# Los usuarios deben configurar sus propias fuentes de listas públicas.
+#
+# Formato: Un dominio por línea (también soporta formato hosts)
+# Líneas que empiezan con # son comentarios
+
+# === EJEMPLO DE FORMATO PLANO ===
+# Dominios de ejemplo que podrían estar bloqueados
+# (Estos son solo ejemplos ilustrativos)
+
+# Servicios que han sido bloqueados colateralmente
+# ejemplo-cdn.com
+# ejemplo-cloudflare.net
+
+# === EJEMPLO DE FORMATO HOSTS ===
+# También puedes usar el formato hosts tradicional:
+
+# 0.0.0.0 sitio-bloqueado-ejemplo.com
+# 127.0.0.1 otro-ejemplo-bloqueado.es
+
+# === EJEMPLO DE WILDCARDS ===
+# El plugin maneja automáticamente wildcards:
+
+# *.ejemplo-dominio.tv
+# *.otro-ejemplo.live
+
+# === NOTAS IMPORTANTES ===
+#
+# 1. USO LEGAL SOLAMENTE:
+#    Este plugin debe usarse ÚNICAMENTE para:
+#    - Restaurar acceso a servicios bloqueados colateralmente
+#    - Investigación académica sobre censura
+#    - Análisis de red corporativo
+#    ❌ NO para acceder a contenido pirata
+#    ❌ NO para evadir bloqueos legales
+#
+# 2. FUENTES PÚBLICAS:
+#    Los usuarios deben obtener listas de fuentes públicas legítimas:
+#    - Organizaciones de derechos digitales
+#    - Wikis sobre censura en internet
+#    - Listas comunitarias verificadas
+#    - Estudios académicos publicados
+#
+# 3. RESPONSABILIDAD:
+#    Los usuarios son responsables del uso de este plugin
+#    y deben cumplir con las leyes locales e internacionales.
+#
+# 4. CONFIGURACIÓN:
+#    Para usar tu propia lista, configura la URL en:
+#    /etc/pihole/plugins/warp/warp-config.conf
+#    
+#    SPAIN_BLOCKLIST_URLS=https://tu-lista-publica.com/blocklist.txt
+#
+# 5. VERIFICACIÓN:
+#    - Verifica la fuente de tus listas
+#    - Usa solo fuentes confiables
+#    - Revisa periódicamente las actualizaciones
+#    - Monitorea los logs del plugin
+#
+# === RECURSOS ===
+#
+# Para más información:
+# - Lee la documentación: docs/SPAIN_BLOCKLISTS.md
+# - Revisa el README principal del proyecto
+# - Consulta organizaciones de derechos digitales
+#
+# === EJEMPLO DE USO ===
+#
+# Si mantienes tu propia lista pública en GitHub:
+#
+# 1. Crea un repositorio con tu lista
+# 2. Publica la lista como archivo .txt
+# 3. Obtén la URL raw de GitHub
+# 4. Configura la URL en warp-config.conf
+# 5. El plugin descargará y procesará automáticamente
+#
+# Ejemplo de URL:
+# https://raw.githubusercontent.com/usuario/repo/main/spain-blocklist.txt
+#
+# === FORMATO RECOMENDADO ===
+#
+# Usa el formato hosts para máxima compatibilidad:
+# 0.0.0.0 dominio-bloqueado.com
+# 0.0.0.0 subdominio.dominio-bloqueado.com
+# 127.0.0.1 otro-dominio.es
+#
+# O formato plano (más simple):
+# dominio-bloqueado.com
+# subdominio.dominio-bloqueado.com
+# otro-dominio.es
+
+# === FIN DEL EJEMPLO ===

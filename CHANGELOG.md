@@ -1,5 +1,38 @@
 # Cambios en la arquitectura - v2.0
 
+## 🆕 **Nuevas características - v2.1**
+
+### **Soporte para listas públicas de bloqueos en España**
+- ✅ **Nueva configuración**: `SPAIN_BLOCKLIST_URLS` en `warp-config.conf`
+- ✅ **Descarga automática**: Listas públicas de dominios bloqueados en España
+- ✅ **Múltiples formatos**: Soporta hosts, plano y wildcards
+- ✅ **Actualización periódica**: Se actualizan junto con otras listas
+- ✅ **Documentación completa**: Ver `docs/SPAIN_BLOCKLISTS.md`
+- ✅ **Ejemplo incluido**: Ver `examples/spain-blocklist-example.txt`
+
+**Archivos nuevos**:
+- `docs/SPAIN_BLOCKLISTS.md` - Documentación completa sobre listas públicas
+- `examples/spain-blocklist-example.txt` - Ejemplo de formato de blocklist
+- `tests/test_spain_blocklists.py` - Tests para la nueva funcionalidad
+
+**Archivos modificados**:
+- `antiTebasPlugin/src/query-monitor.py` - Nuevo método `download_spain_blocklists()`
+- `antiTebasPlugin/config/warp-config.conf` - Nueva variable `SPAIN_BLOCKLIST_URLS`
+- `README.md` - Documentación de la nueva característica
+
+**Uso**:
+```bash
+# Configurar en warp-config.conf
+SPAIN_BLOCKLIST_URLS=https://ejemplo.com/lista-publica.txt
+
+# Actualizar listas
+warp-domains update
+```
+
+---
+
+# Cambios en la arquitectura - v2.0
+
 ## ❌ **Componentes eliminados**
 
 ### **Componente Traffic Manager**

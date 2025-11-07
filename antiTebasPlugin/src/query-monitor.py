@@ -70,6 +70,7 @@ class AntiTebasController:
         config.setdefault('DOMAIN_LIST_FILE', str(PLUGIN_DIR / 'lists' / 'warp-domains.txt'))
         config.setdefault('IP_LIST_FILE', str(PLUGIN_DIR / 'lists' / 'warp-ips.txt'))
         config.setdefault('DOMAIN_LISTS_URLS', '')
+        config.setdefault('SPAIN_BLOCKLIST_URLS', '')
         config.setdefault('UPDATE_INTERVAL', '3600')
         
         # Construir URL de Pi-hole
@@ -174,6 +175,59 @@ class AntiTebasController:
                 self.logger.error(f"Error descargando {url}: {e}")
         
         return new_domains
+    
+    def download_spain_blocklists(self):
+        """Descargar listas públicas de dominios bloqueados en España"""
+        urls = self.config.get('SPAIN_BLOCKLIST_URLS', '').split(',')
+        blocked_domains = set()
+        
+        for url in urls:
+            url = url.strip()
+            if not url:
+                continue
+                
+            try:
+                self.logger.info(f"Descargando lista de bloqueos España desde: {url}")
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+                
+                # Track domains from this specific URL
+                domains_from_url = set()
+                
+                # Parsear diferentes formatos de blocklists
+                for line in response.text.split('\n'):
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    
+                    # Intentar diferentes formatos:
+                    # 1. Formato hosts (0.0.0.0 domain.com o 127.0.0.1 domain.com)
+                    # 2. Formato plano (solo dominio por línea)
+                    # 3. Formato con wildcards (*.domain.com)
+                    
+                    parts = line.split()
+                    
+                    if len(parts) >= 2 and parts[0] in ['0.0.0.0', '127.0.0.1']:
+                        # Formato hosts
+                        domain = parts[1]
+                        if self.is_valid_domain(domain):
+                            domains_from_url.add(domain)
+                    elif len(parts) == 1:
+                        # Formato plano
+                        domain = parts[0]
+                        # Eliminar wildcards al principio
+                        if domain.startswith('*.'):
+                            domain = domain[2:]
+                        if domain and self.is_valid_domain(domain):
+                            domains_from_url.add(domain)
+                
+                blocked_domains.update(domains_from_url)
+                self.logger.info(f"Lista España procesada: +{len(domains_from_url)} dominios bloqueados desde {url}")
+                
+            except Exception as e:
+                self.logger.error(f"Error descargando lista España {url}: {e}")
+        
+        return blocked_domains
     
     def is_valid_domain(self, domain: str) -> bool:
         """Verificar si un dominio es válido"""
@@ -343,14 +397,18 @@ class AntiTebasController:
 
     
     def update_domain_lists(self):
-        """Actualizar listas de dominios (locales + externas)"""
+        """Actualizar listas de dominios (locales + externas + España)"""
         self.logger.info("📋 Actualizando listas de dominios...")
         
-        # Descargar listas externas
+        # Descargar listas externas generales
         external_domains = self.download_domain_lists()
+        
+        # Descargar listas específicas de España (dominios bloqueados)
+        spain_blocked_domains = self.download_spain_blocklists()
         
         # Combinar con listas locales existentes
         self.warp_domains.update(external_domains)
+        self.warp_domains.update(spain_blocked_domains)
         
         # Guardar listas actualizadas
         domain_file = Path(self.config['DOMAIN_LIST_FILE'])
@@ -358,12 +416,16 @@ class AntiTebasController:
         
         with open(domain_file, 'w') as f:
             f.write("# Lista de dominios WARP - Actualizada automáticamente\n")
-            f.write(f"# Última actualización: {datetime.now().isoformat()}\n\n")
+            f.write(f"# Última actualización: {datetime.now().isoformat()}\n")
+            f.write(f"# Dominios externos: {len(external_domains)}\n")
+            f.write(f"# Dominios bloqueados España: {len(spain_blocked_domains)}\n\n")
             for domain in sorted(self.warp_domains):
                 f.write(f"{domain}\n")
         
         self.stats['last_update'] = datetime.now().isoformat()
         self.logger.info(f"✅ Listas actualizadas: {len(self.warp_domains)} dominios totales")
+        self.logger.info(f"   - Externos: {len(external_domains)}")
+        self.logger.info(f"   - Bloqueados España: {len(spain_blocked_domains)}")
         
     def add_domain(self, domain: str) -> bool:
         """Agregar dominio manualmente a la lista WARP"""
