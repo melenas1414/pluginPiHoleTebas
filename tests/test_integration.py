@@ -76,12 +76,12 @@ test-blocked-3.tv
         print()
         
         # Simular guardado de dominios
-        output_file = tempfile.mktemp(suffix='.txt')
-        with open(output_file, 'w') as f:
-            f.write("# Lista de dominios WARP - Test\n")
-            f.write(f"# Total dominios: {len(blocked_domains)}\n\n")
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as output_f:
+            output_file = output_f.name
+            output_f.write("# Lista de dominios WARP - Test\n")
+            output_f.write(f"# Total dominios: {len(blocked_domains)}\n\n")
             for domain in sorted(blocked_domains):
-                f.write(f"{domain}\n")
+                output_f.write(f"{domain}\n")
         
         print(f"✓ Archivo de salida generado: {output_file}")
         
