@@ -35,10 +35,8 @@ sitio3.tv
 normal-domain.com
 """
     
-    # Simular el parseo como lo haría el plugin
-    domains = set()
-    
     # Test formato hosts
+    domains_hosts = set()
     for line in test_data_hosts.split('\n'):
         line = line.strip()
         if not line or line.startswith('#'):
@@ -46,13 +44,14 @@ normal-domain.com
         parts = line.split()
         if len(parts) >= 2 and parts[0] in ['0.0.0.0', '127.0.0.1']:
             domain = parts[1]
-            domains.add(domain)
+            domains_hosts.add(domain)
     
-    print(f"  ✓ Formato hosts: {len(domains)} dominios parseados")
-    assert 'sitio-bloqueado.com' in domains
-    assert 'otro-sitio.es' in domains
+    print(f"  ✓ Formato hosts: {len(domains_hosts)} dominios parseados")
+    assert 'sitio-bloqueado.com' in domains_hosts
+    assert 'otro-sitio.es' in domains_hosts
     
     # Test formato plano
+    domains_plain = set()
     for line in test_data_plain.split('\n'):
         line = line.strip()
         if not line or line.startswith('#'):
@@ -60,12 +59,13 @@ normal-domain.com
         parts = line.split()
         if len(parts) == 1:
             domain = parts[0]
-            domains.add(domain)
+            domains_plain.add(domain)
     
-    print(f"  ✓ Formato plano: {len(domains)} dominios parseados")
-    assert 'sitio1.com' in domains
+    print(f"  ✓ Formato plano: {len(domains_plain)} dominios parseados")
+    assert 'sitio1.com' in domains_plain
     
     # Test wildcards
+    domains_wildcards = set()
     for line in test_data_wildcards.split('\n'):
         line = line.strip()
         if not line or line.startswith('#'):
@@ -75,13 +75,15 @@ normal-domain.com
             domain = parts[0]
             if domain.startswith('*.'):
                 domain = domain[2:]
-            domains.add(domain)
+            domains_wildcards.add(domain)
     
-    print(f"  ✓ Formato wildcards: {len(domains)} dominios parseados")
-    assert 'wildcard-domain.com' in domains
-    assert 'normal-domain.com' in domains
+    print(f"  ✓ Formato wildcards: {len(domains_wildcards)} dominios parseados")
+    assert 'wildcard-domain.com' in domains_wildcards
+    assert 'normal-domain.com' in domains_wildcards
     
-    print(f"  ✅ Total: {len(domains)} dominios únicos parseados")
+    # Combinar todos
+    all_domains = domains_hosts | domains_plain | domains_wildcards
+    print(f"  ✅ Total: {len(all_domains)} dominios únicos parseados")
     print()
     return True
 

@@ -191,6 +191,9 @@ class AntiTebasController:
                 response = requests.get(url, timeout=30)
                 response.raise_for_status()
                 
+                # Track domains from this specific URL
+                domains_from_url = set()
+                
                 # Parsear diferentes formatos de blocklists
                 for line in response.text.split('\n'):
                     line = line.strip()
@@ -208,7 +211,7 @@ class AntiTebasController:
                         # Formato hosts
                         domain = parts[1]
                         if self.is_valid_domain(domain):
-                            blocked_domains.add(domain)
+                            domains_from_url.add(domain)
                     elif len(parts) == 1:
                         # Formato plano
                         domain = parts[0]
@@ -216,9 +219,10 @@ class AntiTebasController:
                         if domain.startswith('*.'):
                             domain = domain[2:]
                         if domain and self.is_valid_domain(domain):
-                            blocked_domains.add(domain)
-                    
-                self.logger.info(f"Lista España procesada: +{len(blocked_domains)} dominios bloqueados desde {url}")
+                            domains_from_url.add(domain)
+                
+                blocked_domains.update(domains_from_url)
+                self.logger.info(f"Lista España procesada: +{len(domains_from_url)} dominios bloqueados desde {url}")
                 
             except Exception as e:
                 self.logger.error(f"Error descargando lista España {url}: {e}")
