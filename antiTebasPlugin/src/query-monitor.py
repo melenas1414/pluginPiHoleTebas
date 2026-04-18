@@ -8,13 +8,14 @@ import re
 import sys
 import time
 import logging
+import ipaddress
 import requests
 import threading
 import subprocess
 import socket
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Set, Optional
+from typing import Dict, List, Set, Optional, Union
 
 # Configuración
 PLUGIN_DIR = Path("/etc/pihole/plugins/warp")
@@ -30,6 +31,8 @@ class AntiTebasController:
         self.setup_logging()
         self.warp_domains = set()
         self.warp_ips = set()
+        self.client_vpn_ips: List[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]] = []   # CIDRs que deben usar WARP
+        self.client_bypass_ips: List[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]] = []  # CIDRs que nunca usan WARP
         self.resolved_ips = {}  # Cache dominio → IP
         self.warp_proxy_host = self.config['WARP_PROXY_HOST']
         self.warp_proxy_port = int(self.config['WARP_PROXY_PORT'])
@@ -72,6 +75,8 @@ class AntiTebasController:
         config.setdefault('DOMAIN_LISTS_URLS', '')
         config.setdefault('SPAIN_BLOCKLIST_URLS', '')
         config.setdefault('UPDATE_INTERVAL', '3600')
+        config.setdefault('CLIENT_VPN_IPS', '')
+        config.setdefault('CLIENT_BYPASS_IPS', '')
         
         # Construir URL de Pi-hole
         protocol = 'https' if config.get('PIHOLE_SSL', 'false').lower() == 'true' else 'http'
@@ -103,7 +108,7 @@ class AntiTebasController:
         self.logger = logging.getLogger('AntiTebas')
         
     def load_warp_lists(self):
-        """Cargar listas de dominios e IPs WARP"""
+        """Cargar listas de dominios e IPs WARP y listas de clientes"""
         # Cargar dominios
         domain_file = Path(self.config['DOMAIN_LIST_FILE'])
         if domain_file.exists():
@@ -125,6 +130,59 @@ class AntiTebasController:
                     if line.strip() and not line.startswith('#')
                 }
             self.logger.info(f"Cargadas {len(self.warp_ips)} IPs WARP")
+        
+        # Cargar IPs/CIDRs de clientes
+        self.client_vpn_ips = self._parse_ip_network_list(self.config.get('CLIENT_VPN_IPS', ''))
+        self.client_bypass_ips = self._parse_ip_network_list(self.config.get('CLIENT_BYPASS_IPS', ''))
+        
+        if self.client_vpn_ips:
+            self.logger.info(f"Clientes VPN configurados: {[str(n) for n in self.client_vpn_ips]}")
+        if self.client_bypass_ips:
+            self.logger.info(f"Clientes bypass configurados: {[str(n) for n in self.client_bypass_ips]}")
+    
+    def _parse_ip_network_list(self, raw: str) -> List[ipaddress.IPv4Network]:
+        """Parsear lista separada por comas de IPs y rangos CIDR"""
+        result = []
+        for entry in raw.split(','):
+            entry = entry.strip()
+            if not entry:
+                continue
+            try:
+                result.append(ipaddress.ip_network(entry, strict=False))
+            except ValueError:
+                self.logger.warning(f"Entrada IP/CIDR inválida ignorada: {entry}")
+        return result
+    
+    def _ip_matches_list(self, ip: str, networks: List[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]]) -> bool:
+        """Verificar si una IP pertenece a alguna red de la lista"""
+        try:
+            parsed_ip = ipaddress.ip_address(ip)
+            return any(parsed_ip in network for network in networks)
+        except ValueError:
+            return False
+    
+    def should_use_warp(self, client_ip: str) -> bool:
+        """Determinar si el tráfico de un cliente debe enrutarse por WARP.
+        
+        Lógica:
+        - Si CLIENT_BYPASS_IPS está configurada y el cliente coincide → NO usar WARP
+        - Si CLIENT_VPN_IPS está configurada y el cliente NO coincide → NO usar WARP
+        - En cualquier otro caso → usar WARP
+        """
+        # La lista de bypass tiene prioridad
+        if self.client_bypass_ips and self._ip_matches_list(client_ip, self.client_bypass_ips):
+            self.logger.debug(f"Cliente {client_ip} en lista bypass — omitiendo WARP")
+            return False
+        
+        # Si hay lista VPN, solo esos clientes usan WARP
+        if self.client_vpn_ips:
+            if self._ip_matches_list(client_ip, self.client_vpn_ips):
+                return True
+            self.logger.debug(f"Cliente {client_ip} no está en CLIENT_VPN_IPS — omitiendo WARP")
+            return False
+        
+        # Sin restricciones: todos los clientes usan WARP
+        return True
     
     def is_warp_domain(self, domain: str) -> bool:
         """Verificar si un dominio debe usar WARP"""
@@ -256,33 +314,39 @@ class AntiTebasController:
             
         return ips
     
-    def setup_iptables_rule(self, ip: str) -> bool:
-        """Configurar regla iptables para IP específica"""
+    def setup_iptables_rule(self, ip: str, client_ip: Optional[str] = None) -> bool:
+        """Configurar regla iptables para IP destino específica.
+        
+        Si se proporciona client_ip, la regla se restringe a ese origen,
+        de modo que solo ese cliente tenga su tráfico redirigido por WARP.
+        """
         try:
             # Crear cadena personalizada si no existe
             subprocess.run([
                 "iptables", "-t", "nat", "-N", "WARP_REDIRECT"
             ], check=False, capture_output=True)
             
-            # Verificar si la regla ya existe
-            check_cmd = [
-                "iptables", "-t", "nat", "-C", "WARP_REDIRECT",
-                "-d", ip, "-p", "tcp", "-j", "REDIRECT", "--to-port", "8080"
-            ]
+            # Construir los argumentos comunes a check y add
+            rule_args = ["-d", ip, "-p", "tcp"]
+            if client_ip:
+                rule_args = ["-s", client_ip] + rule_args
+            rule_args += ["-j", "REDIRECT", "--to-port", "8080"]
             
+            # Verificar si la regla ya existe
+            check_cmd = ["iptables", "-t", "nat", "-C", "WARP_REDIRECT"] + rule_args
             result = subprocess.run(check_cmd, check=False, capture_output=True)
             if result.returncode == 0:
                 # Regla ya existe
                 return True
             
             # Agregar nueva regla
-            add_cmd = [
-                "iptables", "-t", "nat", "-A", "WARP_REDIRECT",
-                "-d", ip, "-p", "tcp", "-j", "REDIRECT", "--to-port", "8080"
-            ]
+            add_cmd = ["iptables", "-t", "nat", "-A", "WARP_REDIRECT"] + rule_args
+            subprocess.run(add_cmd, check=True, capture_output=True)
             
-            result = subprocess.run(add_cmd, check=True, capture_output=True)
-            self.logger.info(f"Regla iptables agregada para IP: {ip}")
+            if client_ip:
+                self.logger.info(f"Regla iptables agregada: {client_ip} → {ip} → WARP")
+            else:
+                self.logger.info(f"Regla iptables agregada para IP: {ip}")
             return True
             
         except subprocess.CalledProcessError as e:
@@ -350,15 +414,22 @@ class AntiTebasController:
         
         # Verificar si es dominio WARP
         if self.is_warp_domain(domain):
+            # Comprobar si este cliente debe usar WARP
+            if not self.should_use_warp(client_ip):
+                self.logger.debug(f"Dominio WARP {domain} — cliente {client_ip} excluido del enrutamiento")
+                return False
+            
             self.logger.info(f"🎯 Dominio WARP detectado: {domain} desde {client_ip}")
             self.stats['warp_queries'] += 1
             
             # Resolver dominio a IPs
             ips = self.resolve_domain_to_ip(domain)
             
-            # Configurar redirección para cada IP
+            # Configurar redirección para cada IP destino.
+            # Si CLIENT_VPN_IPS está activo pasamos client_ip para restringir la regla a ese origen.
+            client_ip_filter = client_ip if self.client_vpn_ips else None
             for ip in ips:
-                if self.setup_iptables_rule(ip):
+                if self.setup_iptables_rule(ip, client_ip_filter):
                     self.logger.info(f"✅ Redirección configurada: {ip} → WARP")
                 else:
                     self.logger.warning(f"❌ Error configurando redirección para {ip}")

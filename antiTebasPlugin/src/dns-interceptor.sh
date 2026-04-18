@@ -22,6 +22,104 @@ log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] [INTERCEPT] $message" >> "$LOG_FILE"
 }
 
+# ---------------------------------------------------------------------------
+# Funciones de enrutamiento selectivo por IP de cliente
+# ---------------------------------------------------------------------------
+
+# Convertir dirección IPv4 a entero de 32 bits
+_ip_to_int() {
+    local ip="$1"
+    local a b c d
+    IFS='.' read -r a b c d <<< "$ip"
+    echo $(( (a << 24) + (b << 16) + (c << 8) + d ))
+}
+
+# Verificar si una IP pertenece a un rango CIDR (ej. 192.168.1.0/24)
+# Uso: _ip_in_cidr <ip> <cidr>  → retorna 0 si coincide, 1 si no
+_ip_in_cidr() {
+    local ip="$1"
+    local cidr="$2"
+    local network prefix mask ip_int net_int
+
+    network="${cidr%/*}"
+    prefix="${cidr#*/}"
+
+    ip_int=$(_ip_to_int "$ip")
+    net_int=$(_ip_to_int "$network")
+
+    # Máscara de red de 'prefix' bits
+    if [ "$prefix" -eq 0 ]; then
+        mask=0
+    else
+        # 0xFFFFFFFF = full 32-bit mask; shift left by (32-prefix) to get the network mask
+        mask=$(( (0xFFFFFFFF << (32 - prefix)) & 0xFFFFFFFF ))
+    fi
+
+    [ $(( ip_int & mask )) -eq $(( net_int & mask )) ]
+}
+
+# Verificar si una IP coincide con alguna entrada de una lista separada por comas.
+# Cada entrada puede ser una IP exacta o un rango CIDR.
+# Uso: _ip_in_list <ip> <lista_separada_por_comas>  → retorna 0 si coincide
+_ip_in_list() {
+    local ip="$1"
+    local list="$2"
+    local entry
+
+    IFS=',' read -ra entries <<< "$list"
+    for entry in "${entries[@]}"; do
+        # Strip surrounding spaces; warn if trimming was needed (malformed entry)
+        local trimmed="${entry#"${entry%%[! ]*}"}"
+        trimmed="${trimmed%"${trimmed##*[! ]}"}"
+        if [ "$entry" != "$trimmed" ]; then
+            log_message "WARNING" "Entrada IP con espacios corregida: '${entry}' → '${trimmed}'"
+        fi
+        entry="$trimmed"
+        [ -z "$entry" ] && continue
+
+        if [[ "$entry" == */* ]]; then
+            # Es un rango CIDR
+            _ip_in_cidr "$ip" "$entry" && return 0
+        else
+            # Es una IP exacta
+            [ "$ip" = "$entry" ] && return 0
+        fi
+    done
+    return 1
+}
+
+# Determinar si el tráfico de un cliente debe enrutarse por WARP.
+#
+# Lógica:
+#   - Si CLIENT_BYPASS_IPS está configurada y el cliente coincide → NO usar WARP
+#   - Si CLIENT_VPN_IPS está configurada y el cliente NO coincide → NO usar WARP
+#   - En cualquier otro caso → usar WARP
+#
+# Uso: should_use_warp <client_ip>  → retorna 0 (sí WARP) / 1 (no WARP)
+should_use_warp() {
+    local client_ip="$1"
+
+    # Lista bypass tiene prioridad
+    if [ -n "${CLIENT_BYPASS_IPS:-}" ] && _ip_in_list "$client_ip" "$CLIENT_BYPASS_IPS"; then
+        log_message "DEBUG" "Cliente $client_ip en lista bypass — omitiendo WARP"
+        return 1
+    fi
+
+    # Si hay lista VPN, solo esos clientes usan WARP
+    if [ -n "${CLIENT_VPN_IPS:-}" ]; then
+        if _ip_in_list "$client_ip" "$CLIENT_VPN_IPS"; then
+            return 0
+        fi
+        log_message "DEBUG" "Cliente $client_ip no está en CLIENT_VPN_IPS — omitiendo WARP"
+        return 1
+    fi
+
+    # Sin restricciones: todos los clientes usan WARP
+    return 0
+}
+
+# ---------------------------------------------------------------------------
+
 # Función para verificar si un dominio está en la lista WARP
 is_warp_domain() {
     local domain="$1"
@@ -66,6 +164,12 @@ intercept_query() {
     
     # Verificar si es un dominio WARP
     if is_warp_domain "$domain"; then
+        # Comprobar si este cliente debe usar WARP
+        if ! should_use_warp "$client_ip"; then
+            log_message "DEBUG" "Dominio WARP $domain — cliente $client_ip excluido del enrutamiento"
+            return 1
+        fi
+        
         log_message "INFO" "Dominio WARP detectado: $domain (cliente: $client_ip)"
         
         # Notificar al servidor WARP
